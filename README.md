@@ -1,152 +1,73 @@
-# Camp API
+# Camp App — Young Leaders Camp (Registro 2027)
 
-Young Leaders Camp Registration API built with NestJS, TypeScript, and Prisma.
+Sistema de inscripción al campamento de verano: formulario público para las familias, pago de la cuota de registro con Stripe y panel de administración.
 
-## Tech Stack
+Este repositorio es la **copia de trabajo**. La app real sigue funcionando por separado y no depende de lo que se haga aquí.
 
-- **NestJS** - Progressive Node.js framework
-- **TypeScript** - Type-safe JavaScript
-- **Prisma** - Next-generation ORM
-- **MySQL** - Database
-- **JWT** - Authentication
-- **Class Validator** - Validation
+## Qué hay en cada carpeta
 
-## Prerequisites
+| Carpeta | Qué es |
+| --- | --- |
+| `src/` | API (NestJS + Prisma + MySQL): inscripciones, pagos, login de administrador |
+| `prisma/schema.prisma` | Estructura de la base de datos |
+| `web/` | Formulario público de 6 pasos, páginas de pago y panel de administración (React + Vite) |
+| `scripts/create-admin.js` | Crea el usuario administrador |
+| `docker-compose.test.yml` | Levanta la **versión de prueba** (nombres y puerto propios) |
 
-- Node.js 18+ 
-- MySQL 8+
-- npm or yarn
+## Cómo funciona el pago
 
-## Installation
+1. La familia llena el formulario y pulsa **Enviar y pagar $350 CAD**.
+2. La API guarda la inscripción (estado: *sin pagar*) y crea una sesión de pago de Stripe.
+3. La familia paga en la página segura de Stripe.
+4. Stripe avisa a `POST /api/payments/webhook`. La API verifica la firma y marca la inscripción como **pagada**.
+
+El monto se define **solo en el servidor** (`REGISTRATION_FEE_CENTS`, por defecto 35000 = $350.00 CAD). El navegador nunca decide cuánto se cobra.
+Si la familia cierra la ventana de pago, su inscripción queda guardada y puede reintentar sin duplicarla.
+
+## Base de datos
+
+Los cambios del formulario 2027 **solo agregan** columnas. Las inscripciones anteriores se conservan y siguen visibles en el panel (marcadas "2026"). Para la prueba, use una base de datos **separada** de la real.
+
+## Configurar Stripe (modo prueba)
+
+1. En el panel de Stripe, active el **modo de prueba** y copie la clave secreta (`sk_test_...`) a `STRIPE_SECRET_KEY`.
+2. En *Developers → Webhooks* agregue el destino `https://TU-DOMINIO-DE-PRUEBA/api/payments/webhook` con los eventos `checkout.session.completed` y `checkout.session.async_payment_succeeded`.
+3. Copie el *signing secret* (`whsec_...`) a `STRIPE_WEBHOOK_SECRET`.
+4. Pruebe con la tarjeta `4242 4242 4242 4242` (cualquier fecha futura y cualquier CVC). No se cobra dinero real.
+
+Solo cuando todo funcione en prueba se cambia a las claves reales (`sk_live_...`).
+
+## Desarrollo en un computador
 
 ```bash
+cp .env.example .env      # y complete los valores
 npm install
+npx prisma db push        # crea las tablas en la base indicada en DATABASE_URL
+npm run start:dev         # API en http://localhost:3000/api
+
+cd web && npm install && npm run dev   # formulario en http://localhost:5173
 ```
 
-## Database Setup
-
-### For Hostinger MySQL (Production):
-
-1. **Create database in Hostinger hPanel**:
-   - Go to **Databases** → **MySQL Databases**
-   - Create database and user
-   - Configure **Remote MySQL** access (set Access host to `%` for remote connections)
-
-2. **Find your MySQL host**:
-   - Check phpMyAdmin URL (e.g., `auth-db1455.hstgr.io`)
-   - Or find it in MySQL Databases section in hPanel
-
-3. **Update `.env` file** with your Hostinger MySQL credentials:
-   ```env
-   DATABASE_URL="mysql://u396247786_4dmi3:YOUR_PASSWORD@auth-db1455.hstgr.io:3306/u396247786_camp"
-   JWT_SECRET="your-super-secret-jwt-key"
-   JWT_EXPIRES_IN="7d"
-   PORT=3000
-   NODE_ENV=development
-   FRONTEND_URL="http://localhost:5173"
-   ```
-   
-   **Important**: Use the full username with prefix (e.g., `u396247786_4dmi3`, not just `4dmi3`)
-
-4. **Generate Prisma Client**:
-   ```bash
-   npm run prisma:generate
-   ```
-
-5. **Push schema to database** (Hostinger shared hosting doesn't support shadow database):
-   ```bash
-   npx prisma db push
-   ```
-   
-   This will create all necessary tables in your database.
-
-### For Local MySQL Development:
-
-1. **Install and start MySQL** (if not already installed):
-   - macOS: `brew install mysql && brew services start mysql`
-   - Or download from [MySQL website](https://dev.mysql.com/downloads/mysql/)
-
-2. **Create MySQL database**:
-   ```sql
-   CREATE DATABASE camp_db;
-   ```
-
-3. **Update `.env` file**:
-   ```env
-   DATABASE_URL="mysql://root:YOUR_PASSWORD@localhost:3306/camp_db"
-   ```
-
-4. **Run migrations**:
-   ```bash
-   npm run prisma:generate
-   npm run prisma:migrate
-   ```
-
-6. **(Optional) Create admin user**:
-   ```sql
-   INSERT INTO users (id, email, password, role) 
-   VALUES (UUID(), 'admin@example.com', '$2b$10$YourHashedPasswordHere', 'admin');
-   ```
-   
-   Or use Prisma Studio to create users:
-   ```bash
-   npm run prisma:studio
-   ```
-
-## Running the app
+Crear el administrador:
 
 ```bash
-npm run start:dev
+ADMIN_EMAIL=tu@correo.com ADMIN_PASSWORD='una-clave-larga' node scripts/create-admin.js
 ```
 
-The API will be available at `http://localhost:3000/api`
+Pruebas automáticas: `npm test` (API) y `cd web && npm test` (formulario).
 
-## API Endpoints
+## Versión de prueba con Docker
 
-### Auth
-- `POST /api/auth/login` - Login (public)
-
-### Registrations
-- `POST /api/registrations` - Create registration (public)
-- `GET /api/registrations` - List all (admin)
-- `GET /api/registrations/:id` - Get one (admin)
-- `PATCH /api/registrations/:id/status` - Update status (admin)
-- `PATCH /api/registrations/:id/payment` - Update payment (admin)
-- `DELETE /api/registrations/:id` - Delete (admin)
-
-### Camps
-- `GET /api/camps` - List all (public)
-- `GET /api/camps/:id` - Get one (public)
-- `POST /api/camps` - Create (admin)
-- `PATCH /api/camps/:id` - Update (admin)
-- `DELETE /api/camps/:id` - Delete (admin)
-
-### Stats
-- `GET /api/stats/registrations` - Get statistics (admin)
-
-## Project Structure
-
-```
-src/
-├── auth/           # Authentication module
-├── camps/          # Camp programs module
-├── common/         # Shared utilities
-├── prisma/         # Prisma service
-├── registrations/  # Registrations module
-├── stats/          # Statistics module
-├── app.module.ts   # Root module
-└── main.ts         # Entry point
-```
-
-## Testing
+Cree `.env.test` a partir de `.env.example` (con `AUTO_DB_PUSH=true`, `ADMIN_EMAIL` y `ADMIN_PASSWORD` para que las tablas y el administrador se creen solos al arrancar) y ejecute:
 
 ```bash
-npm run test
-npm run test:e2e
-npm run test:cov
+docker compose -f docker-compose.test.yml up -d --build
 ```
 
-## License
+La web de prueba queda en el puerto `8081`. Quite `ADMIN_PASSWORD` de `.env.test` después del primer arranque.
 
-MIT
-# camp-api
+## Seguridad
+
+- Nunca suba `.env` ni `.env.test` a GitHub (ya están en `.gitignore`).
+- Si alguna clave se compartió por error, genérela de nuevo en Stripe / Hostinger.
+- La API no devuelve datos personales a quien envía el formulario: solo el número de referencia y los estados.

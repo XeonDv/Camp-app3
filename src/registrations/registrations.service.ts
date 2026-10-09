@@ -4,10 +4,14 @@ import {
   BadRequestException,
   Logger,
 } from '@nestjs/common';
+import { randomBytes } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateRegistrationDto } from './dto/create-registration.dto';
 import { QueryRegistrationsDto } from './dto/query-registrations.dto';
 import { Prisma } from '@prisma/client';
+
+/** Marca los registros creados con el formulario 2027 (los anteriores quedan como "2026"). */
+export const FORM_VERSION = '2027';
 
 @Injectable()
 export class RegistrationsService {
@@ -15,28 +19,46 @@ export class RegistrationsService {
 
   constructor(private prisma: PrismaService) {}
 
-  async create(createRegistrationDto: CreateRegistrationDto) {
-    const registrationId = `YLC-${new Date().getFullYear()}-${Date.now()}`;
+  /**
+   * Guarda una inscripción nueva. Solo devuelve lo que el formulario público
+   * necesita (id y estados): nunca se devuelven datos personales a quien envía.
+   */
+  async create(dto: CreateRegistrationDto) {
+    this.assertBusinessRules(dto);
 
-    this.logger.log(`📝 Creating new registration: ${registrationId}`);
-    this.logger.debug(`Student: ${createRegistrationDto.studentGivenName} ${createRegistrationDto.studentLastName}`);
-    this.logger.debug(`Program: ${createRegistrationDto.programSelection}`);
-
-    const data: Prisma.CampRegistrationCreateInput = {
-      id: registrationId,
-      ...this.mapDtoToPrismaData(createRegistrationDto),
-    };
+    // Id difícil de adivinar: la página de "pago recibido" consulta por este número.
+    const id = `YLC-${FORM_VERSION}-${randomBytes(6).toString('hex').toUpperCase()}`;
+    this.logger.log(`📝 Creating registration ${id}`);
 
     try {
       const registration = await this.prisma.campRegistration.create({
-        data,
+        data: { id, ...this.mapDtoToPrismaData(dto) },
+        select: { id: true, status: true, paymentStatus: true },
       });
-      this.logger.log(`✅ Registration created successfully: ${registrationId}`);
+      this.logger.log(`✅ Registration created: ${id}`);
       return registration;
     } catch (error) {
-      this.logger.error(`❌ Failed to create registration: ${registrationId}`, error);
+      this.logger.error(`❌ Failed to create registration ${id}`, error);
       throw error;
     }
+  }
+
+  /** Reglas que dependen de varios campos a la vez. */
+  private assertBusinessRules(dto: CreateRegistrationDto) {
+    const problems: string[] = [];
+    const today = new Date().toISOString().slice(0, 10);
+
+    if (dto.studentDateOfBirth.slice(0, 10) >= today) {
+      problems.push('studentDateOfBirth must be in the past');
+    }
+    if (dto.departureDate.slice(0, 10) <= dto.preferredStartDate.slice(0, 10)) {
+      problems.push('departureDate must be after preferredStartDate');
+    }
+    if (dto.frenchCanadaTour && dto.durationWeeks < 3) {
+      problems.push('frenchCanadaTour is only available for programs of 3 or 4 weeks');
+    }
+
+    if (problems.length > 0) throw new BadRequestException(problems);
   }
 
   async findAll(query: QueryRegistrationsDto) {
@@ -44,9 +66,6 @@ export class RegistrationsService {
     const skip = (page - 1) * limit;
 
     this.logger.log(`🔍 Fetching registrations - Page: ${page}, Limit: ${limit}`);
-    if (search) this.logger.debug(`Search query: ${search}`);
-    if (status) this.logger.debug(`Status filter: ${status}`);
-    if (paymentStatus) this.logger.debug(`Payment status filter: ${paymentStatus}`);
 
     const where: Prisma.CampRegistrationWhereInput = {};
 
@@ -63,6 +82,7 @@ export class RegistrationsService {
         { studentLastName: { contains: search } },
         { studentGivenName: { contains: search } },
         { studentEmail: { contains: search } },
+        { parentEmail: { contains: search } },
         { id: { contains: search } },
       ];
     }
@@ -92,7 +112,7 @@ export class RegistrationsService {
 
   async findOne(id: string) {
     this.logger.debug(`🔍 Fetching registration: ${id}`);
-    
+
     const registration = await this.prisma.campRegistration.findUnique({
       where: { id },
     });
@@ -102,14 +122,13 @@ export class RegistrationsService {
       throw new NotFoundException(`Registration with ID ${id} not found`);
     }
 
-    this.logger.debug(`✅ Registration found: ${id}`);
     return registration;
   }
 
   async updateStatus(id: string, status: string) {
     this.logger.log(`🔄 Updating registration status: ${id} -> ${status}`);
-    
-    const registration = await this.findOne(id);
+
+    await this.findOne(id);
 
     const updated = await this.prisma.campRegistration.update({
       where: { id },
@@ -122,8 +141,8 @@ export class RegistrationsService {
 
   async updatePayment(id: string, paymentStatus: string, paymentAmount?: number) {
     this.logger.log(`💳 Updating payment: ${id} -> ${paymentStatus}${paymentAmount ? ` ($${paymentAmount})` : ''}`);
-    
-    const registration = await this.findOne(id);
+
+    await this.findOne(id);
 
     const updateData: Prisma.CampRegistrationUpdateInput = {
       paymentStatus,
@@ -144,7 +163,7 @@ export class RegistrationsService {
 
   async remove(id: string) {
     this.logger.warn(`🗑️ Deleting registration: ${id}`);
-    
+
     await this.findOne(id);
 
     const deleted = await this.prisma.campRegistration.delete({
@@ -155,131 +174,81 @@ export class RegistrationsService {
     return deleted;
   }
 
-  private mapDtoToPrismaData(dto: CreateRegistrationDto): Prisma.CampRegistrationCreateInput {
+  private mapDtoToPrismaData(dto: CreateRegistrationDto): Omit<Prisma.CampRegistrationCreateInput, 'id'> {
+    const date = (value?: string) => (value ? new Date(value) : null);
+
     return {
-      campId: dto.campId,
-      programSelection: dto.programSelection,
-      preferredStartDate: new Date(dto.preferredStartDate),
-      agencyName: dto.agencyName,
-      agencyEmail: dto.agencyEmail,
-      agencyPhone: dto.agencyPhone,
-      studentLastName: dto.studentLastName,
+      formVersion: FORM_VERSION,
+
+      // 1. Estudiante
       studentGivenName: dto.studentGivenName,
-      studentNickName: dto.studentNickName,
+      studentLastName: dto.studentLastName,
       studentGender: dto.studentGender,
       studentDateOfBirth: new Date(dto.studentDateOfBirth),
-      studentAge: dto.studentAge,
       studentNationality: dto.studentNationality,
+      studentMotherTongue: dto.studentMotherTongue,
       studentPassportNumber: dto.studentPassportNumber,
-      studentPassportIssueDate: dto.studentPassportIssueDate
-        ? new Date(dto.studentPassportIssueDate)
-        : null,
-      studentPassportExpiryDate: new Date(dto.studentPassportExpiryDate),
-      studentCurrentSchool: dto.studentCurrentSchool,
-      studentGrade: dto.studentGrade,
-      studentEmail: dto.studentEmail,
-      studentPhone: dto.studentPhone,
       studentHomeAddress: dto.studentHomeAddress,
+      studentCountry: dto.studentCountry,
       studentCity: dto.studentCity,
       studentProvinceState: dto.studentProvinceState,
-      studentCountry: dto.studentCountry,
       studentPostalCode: dto.studentPostalCode,
-      parentFullName: dto.parentFullName,
-      parentRelationship: dto.parentRelationship,
-      parentPhone: dto.parentPhone,
-      parentEmail: dto.parentEmail,
-      parentOccupation: dto.parentOccupation,
-      emergencyContactLastName: dto.emergencyContactLastName,
-      emergencyContactGivenName: dto.emergencyContactGivenName,
+      studentPhone: dto.studentPhone,
+      studentEmail: dto.studentEmail,
+      emergencyContactName: dto.emergencyContactName,
       emergencyContactPhone: dto.emergencyContactPhone,
       emergencyContactEmail: dto.emergencyContactEmail,
-      accompanyingParent1LastName: dto.accompanyingParent1LastName,
-      accompanyingParent1GivenName: dto.accompanyingParent1GivenName,
-      accompanyingParent1Relation: dto.accompanyingParent1Relation,
-      accompanyingParent1DateOfBirth: dto.accompanyingParent1DateOfBirth
-        ? new Date(dto.accompanyingParent1DateOfBirth)
-        : null,
-      accompanyingParent1Age: dto.accompanyingParent1Age,
-      accompanyingParent1Gender: dto.accompanyingParent1Gender,
-      accompanyingParent1Nationality: dto.accompanyingParent1Nationality,
-      accompanyingParent1PassportNumber: dto.accompanyingParent1PassportNumber,
-      accompanyingParent1PassportExpiry: dto.accompanyingParent1PassportExpiry
-        ? new Date(dto.accompanyingParent1PassportExpiry)
-        : null,
-      accompanyingParent1Phone: dto.accompanyingParent1Phone,
-      accompanyingParent1Email: dto.accompanyingParent1Email,
-      accompanyingParent2LastName: dto.accompanyingParent2LastName,
-      accompanyingParent2GivenName: dto.accompanyingParent2GivenName,
-      accompanyingParent2Relation: dto.accompanyingParent2Relation,
-      accompanyingParent2DateOfBirth: dto.accompanyingParent2DateOfBirth
-        ? new Date(dto.accompanyingParent2DateOfBirth)
-        : null,
-      accompanyingParent2Age: dto.accompanyingParent2Age,
-      accompanyingParent2Gender: dto.accompanyingParent2Gender,
-      accompanyingParent2Nationality: dto.accompanyingParent2Nationality,
-      accompanyingParent2PassportNumber: dto.accompanyingParent2PassportNumber,
-      accompanyingParent2PassportExpiry: dto.accompanyingParent2PassportExpiry
-        ? new Date(dto.accompanyingParent2PassportExpiry)
-        : null,
-      accompanyingParent2Phone: dto.accompanyingParent2Phone,
-      accompanyingParent2Email: dto.accompanyingParent2Email,
-      englishLevel: dto.englishLevel,
-      ieltsOverall: dto.ieltsOverall,
-      ieltsDate: dto.ieltsDate ? new Date(dto.ieltsDate) : null,
-      toeflScore: dto.toeflScore,
-      toeflDate: dto.toeflDate ? new Date(dto.toeflDate) : null,
-      otherCertificate: dto.otherCertificate,
-      studentStrengths: dto.studentStrengths,
-      studentInterests: dto.studentInterests,
-      previousInternationalExperience: dto.previousInternationalExperience,
-      previousExperienceDetails: dto.previousExperienceDetails,
-      generalHealthCondition: dto.generalHealthCondition,
+      emergencyContactRelationship: dto.emergencyContactRelationship,
+      currentlyInCanada: dto.currentlyInCanada,
+      canadaAddress: dto.currentlyInCanada ? dto.canadaAddress : null,
+
+      // 2. Agencia
+      agencyName: dto.agencyName,
+      agencyContactPerson: dto.agencyContactPerson,
+      agencyEmail: dto.agencyEmail,
+
+      // 3. Padres / tutores
+      parentFullName: dto.parentFullName,
+      parentDateOfBirth: date(dto.parentDateOfBirth),
+      parentEmail: dto.parentEmail,
+      parentPhone: dto.parentPhone,
+      parent2FullName: dto.parent2FullName,
+      parent2DateOfBirth: date(dto.parent2DateOfBirth),
+      parent2Email: dto.parent2Email,
+      parent2Phone: dto.parent2Phone,
+
+      // 4. Historial médico
       allergies: dto.allergies,
       medicalConditions: dto.medicalConditions,
       medications: dto.medications,
       specialDietary: dto.specialDietary,
-      hasAllergies: dto.hasAllergies,
-      allergiesDetails: dto.allergiesDetails,
-      hasChronicIllness: dto.hasChronicIllness,
-      chronicIllnessDetails: dto.chronicIllnessDetails,
-      regularMedication: dto.regularMedication,
-      specialDiet: dto.specialDiet,
-      specialDietDetails: dto.specialDietDetails,
-      specialNeeds: dto.specialNeeds,
-      travelArrangement: dto.travelArrangement,
+
+      // 5. Centro, fechas y alojamiento
+      campCentre: dto.campCentre,
+      durationWeeks: dto.durationWeeks,
+      preferredStartDate: new Date(dto.preferredStartDate),
+      departureDate: new Date(dto.departureDate),
       accommodationType: dto.accommodationType,
-      accommodationOther: dto.accommodationOther,
-      arrivalAirline: dto.arrivalAirline,
-      arrivalFlightNumber: dto.arrivalFlightNumber,
-      arrivalDepartureAirport: dto.arrivalDepartureAirport,
-      arrivalAirportToronto: dto.arrivalAirportToronto,
-      arrivalDateTime: dto.arrivalDateTime ? new Date(dto.arrivalDateTime) : null,
-      departureAirline: dto.departureAirline,
-      departureFlightNumber: dto.departureFlightNumber,
-      departureDateTime: dto.departureDateTime
-        ? new Date(dto.departureDateTime)
-        : null,
-      flightSpecialRequests: dto.flightSpecialRequests,
-      activityParticipationConsent: dto.activityParticipationConsent,
-      activityRiskAcceptance: dto.activityRiskAcceptance,
-      activityLiabilityRelease: dto.activityLiabilityRelease,
-      propertyRespectAgreement: dto.propertyRespectAgreement,
-      propertyDamageResponsibility: dto.propertyDamageResponsibility,
-      medicalInfoAccuracy: dto.medicalInfoAccuracy,
-      allergyEnvironmentUnderstanding: dto.allergyEnvironmentUnderstanding,
-      emergencyInsuranceUnderstanding: dto.emergencyInsuranceUnderstanding,
-      emergencyTreatmentAuthorization: dto.emergencyTreatmentAuthorization,
-      medicalCostResponsibility: dto.medicalCostResponsibility,
-      privacyPolicyUnderstanding: dto.privacyPolicyUnderstanding,
-      mediaConsent: dto.mediaConsent,
-      informationTruthConfirmation: dto.informationTruthConfirmation,
-      applicationFormUnderstanding: dto.applicationFormUnderstanding,
-      campRulesAgreement: dto.campRulesAgreement,
-      consentWaiverSignAgreement: dto.consentWaiverSignAgreement,
+      parentAccommodation: dto.parentAccommodation,
+
+      // 6. Programa académico
+      academicProgram: dto.academicProgram,
+
+      // 7. Servicios opcionales
+      airportTransfer: dto.airportTransfer,
+      frenchCanadaTour: dto.frenchCanadaTour,
+      notarizedCustodyLetter: dto.notarizedCustodyLetter,
+      officialCertificate: dto.officialCertificate,
+      additionalNightStays: dto.additionalNightStays,
+
+      // 8. Prueba de nivel
+      placementTest: dto.placementTest,
+
+      // 9. Términos y firma
+      termsAccepted: dto.termsAccepted,
+      signatureDate: new Date(dto.signatureDate),
       parentGuardianFullName: dto.parentGuardianFullName,
-      parentGuardianRelation: dto.parentGuardianRelation,
       parentSignature: dto.parentSignature,
-      signatureDate: dto.signatureDate ? new Date(dto.signatureDate) : null,
     };
   }
 }

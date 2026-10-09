@@ -1,0 +1,34 @@
+# ENTORNO DE PRUEBA (formulario 2027 + Stripe en modo prueba).
+# Usa nombres, puerto y red PROPIOS: no toca la app real (camp-api / camp-web / puerto 3006 / 8080).
+# Antes de levantarlo, crear el archivo .env.test (ver .env.example) con una base de datos SEPARADA.
+services:
+  api:
+    build: .
+    image: camp-api-test:latest
+    container_name: camp-api-test
+    restart: unless-stopped
+    env_file: .env.test
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      AUTO_DB_PUSH: "true"
+    expose:
+      - "3000"
+    networks:
+      - camp-test
+
+  web:
+    build: ./web
+    image: camp-web-test:latest
+    container_name: camp-web-test
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "${CAMP_TEST_WEB_PORT:-8081}:80"
+    networks:
+      - camp-test
+
+networks:
+  camp-test:
+    name: camp-test-net

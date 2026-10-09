@@ -11,7 +11,7 @@ model CampRegistration {
   id                        String   @id @default(uuid())
 
   campId                    String?
-  programSelection          String
+  programSelection          String?
   preferredStartDate        DateTime
   agencyName                String?
   agencyEmail               String?
@@ -26,7 +26,7 @@ model CampRegistration {
   studentNationality        String
   studentPassportNumber     String
   studentPassportIssueDate  DateTime?
-  studentPassportExpiryDate DateTime
+  studentPassportExpiryDate DateTime?
   studentCurrentSchool      String?
   studentGrade              String?
   studentEmail              String?
@@ -38,7 +38,7 @@ model CampRegistration {
   studentPostalCode         String?
 
   parentFullName            String
-  parentRelationship        String
+  parentRelationship        String?
   parentPhone               String
   parentEmail               String
   parentOccupation          String?
@@ -72,7 +72,7 @@ model CampRegistration {
   accompanyingParent2Phone       String?
   accompanyingParent2Email       String?
 
-  englishLevel                  String
+  englishLevel                  String?
   ieltsOverall                  String?
   ieltsDate                     DateTime?
   toeflScore                    String?
@@ -80,10 +80,10 @@ model CampRegistration {
   otherCertificate              String?
   studentStrengths              String?
   studentInterests              String?
-  previousInternationalExperience String
+  previousInternationalExperience String?
   previousExperienceDetails     String?
 
-  generalHealthCondition        String
+  generalHealthCondition        String?
   allergies                     String?
   medicalConditions             String?
   medications                   String?
@@ -97,7 +97,7 @@ model CampRegistration {
   specialDietDetails            String?
   specialNeeds                  String?
 
-  travelArrangement             String
+  travelArrangement             String?
   accommodationType             String
   accommodationOther            String?
 
@@ -132,6 +132,39 @@ model CampRegistration {
   parentGuardianRelation       String?
   parentSignature              String?
   signatureDate                DateTime?
+
+  // ---- Formulario 2027 (columnas nuevas, todas opcionales para no afectar registros anteriores) ----
+  formVersion                  String   @default("2026")
+  studentMotherTongue          String?
+  emergencyContactName         String?
+  emergencyContactRelationship String?
+  currentlyInCanada            Boolean?
+  canadaAddress                String?
+  agencyContactPerson          String?
+
+  parentDateOfBirth            DateTime?
+  parent2FullName              String?
+  parent2DateOfBirth           DateTime?
+  parent2Email                 String?
+  parent2Phone                 String?
+
+  campCentre                   String?
+  durationWeeks                Int?
+  departureDate                DateTime?
+  parentAccommodation          String?
+  academicProgram              String?
+  airportTransfer              String?
+  frenchCanadaTour             Boolean?
+  notarizedCustodyLetter       Boolean?
+  officialCertificate          Boolean?
+  additionalNightStays         Json?
+  placementTest                String?
+  termsAccepted                Boolean?
+
+  // ---- Pago con Stripe ----
+  stripeSessionId              String?
+  stripePaymentIntentId        String?
+  paidAt                       DateTime?
 
   status                       String  @default("pending")
   paymentStatus                String  @default("unpaid")

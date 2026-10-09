@@ -1,441 +1,218 @@
+import { Type } from 'class-transformer';
 import {
-  IsString,
-  IsEmail,
-  IsOptional,
+  ArrayUnique,
+  Equals,
+  IsArray,
   IsBoolean,
   IsDateString,
-  IsEnum,
-  IsNumber,
-  IsPhoneNumber,
+  IsEmail,
+  IsIn,
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  Max,
+  MaxLength,
+  Min,
+  ValidateIf,
 } from 'class-validator';
 
+/**
+ * Formulario de registro 2027 (ver "YLCamp Formulario de Registro 2027.pdf").
+ * Estos nombres y valores permitidos DEBEN coincidir con web/src/form/payload.ts
+ * y web/src/types.ts. Cualquier campo que no esté aquí es rechazado por la API.
+ */
+
+export const GENDERS = ['Male', 'Female', 'Other'] as const;
+export const ACCOMMODATION_TYPES = ['residence', 'homestay', 'day-camper'] as const;
+export const PARENT_ACCOMMODATIONS = ['residence', 'homestay', 'none'] as const;
+export const ACADEMIC_PROGRAMS = [
+  'general-english',
+  'leadership-entrepreneurship',
+  'digital-media',
+  'artificial-intelligence',
+] as const;
+export const AIRPORT_TRANSFERS = ['arrival', 'departure', 'both', 'none'] as const;
+export const NIGHT_STAYS = [
+  'students-residence',
+  'students-homestay',
+  'parents-residence',
+  'parents-homestay',
+] as const;
+export const PLACEMENT_TESTS = ['take', 'skip'] as const;
+export const CAMP_CENTRES = ['university-of-toronto'] as const;
+
+const SHORT = 200;
+const LONG = 2000;
+
 export class CreateRegistrationDto {
-  @IsOptional()
-  @IsString()
-  campId?: string;
-
-  @IsString()
-  @IsEnum(['2weeks', '3weeks'])
-  programSelection: string;
-
-  @IsDateString()
-  preferredStartDate: string;
-
-  @IsOptional()
-  @IsString()
-  agencyName?: string;
-
-  @IsOptional()
-  @IsEmail()
-  agencyEmail?: string;
-
-  @IsOptional()
-  @IsString()
-  agencyPhone?: string;
-
-  @IsString()
-  studentLastName: string;
-
-  @IsString()
+  // ------------------------------------------------ 1. Estudiante
+  @IsString() @IsNotEmpty() @MaxLength(SHORT)
   studentGivenName: string;
 
-  @IsOptional()
-  @IsString()
-  studentNickName?: string;
+  @IsString() @IsNotEmpty() @MaxLength(SHORT)
+  studentLastName: string;
 
-  @IsString()
-  @IsEnum(['Male', 'Female'])
+  @IsIn(GENDERS as unknown as string[])
   studentGender: string;
 
   @IsDateString()
   studentDateOfBirth: string;
 
-  @IsOptional()
-  @IsNumber()
-  studentAge?: number;
-
-  @IsString()
+  @IsString() @IsNotEmpty() @MaxLength(SHORT)
   studentNationality: string;
 
-  @IsString()
+  @IsOptional() @IsString() @MaxLength(SHORT)
+  studentMotherTongue?: string;
+
+  @IsString() @IsNotEmpty() @MaxLength(SHORT)
   studentPassportNumber: string;
 
-  @IsOptional()
-  @IsDateString()
-  studentPassportIssueDate?: string;
+  @IsString() @IsNotEmpty() @MaxLength(LONG)
+  studentHomeAddress: string;
 
-  @IsDateString()
-  studentPassportExpiryDate: string;
+  @IsString() @IsNotEmpty() @MaxLength(SHORT)
+  studentCountry: string;
 
-  @IsOptional()
-  @IsString()
-  studentCurrentSchool?: string;
+  @IsString() @IsNotEmpty() @MaxLength(SHORT)
+  studentCity: string;
 
-  @IsOptional()
-  @IsString()
-  studentGrade?: string;
+  @IsString() @IsNotEmpty() @MaxLength(SHORT)
+  studentProvinceState: string;
 
-  @IsOptional()
-  @IsEmail()
+  @IsString() @IsNotEmpty() @MaxLength(SHORT)
+  studentPostalCode: string;
+
+  @IsString() @IsNotEmpty() @MaxLength(SHORT)
+  studentPhone: string;
+
+  @IsOptional() @IsEmail() @MaxLength(SHORT)
   studentEmail?: string;
 
-  @IsOptional()
-  @IsString()
-  studentPhone?: string;
+  @IsString() @IsNotEmpty() @MaxLength(SHORT)
+  emergencyContactName: string;
 
-  @IsOptional()
-  @IsString()
-  studentHomeAddress?: string;
+  @IsString() @IsNotEmpty() @MaxLength(SHORT)
+  emergencyContactPhone: string;
 
-  @IsOptional()
-  @IsString()
-  studentCity?: string;
-
-  @IsOptional()
-  @IsString()
-  studentProvinceState?: string;
-
-  @IsOptional()
-  @IsString()
-  studentCountry?: string;
-
-  @IsOptional()
-  @IsString()
-  studentPostalCode?: string;
-
-  @IsString()
-  parentFullName: string;
-
-  @IsString()
-  @IsEnum(['Father', 'Mother', 'Guardian'])
-  parentRelationship: string;
-
-  @IsString()
-  parentPhone: string;
-
-  @IsEmail()
-  parentEmail: string;
-
-  @IsOptional()
-  @IsString()
-  parentOccupation?: string;
-
-  @IsOptional()
-  @IsString()
-  emergencyContactLastName?: string;
-
-  @IsOptional()
-  @IsString()
-  emergencyContactGivenName?: string;
-
-  @IsOptional()
-  @IsString()
-  emergencyContactPhone?: string;
-
-  @IsOptional()
-  @IsEmail()
+  @IsOptional() @IsEmail() @MaxLength(SHORT)
   emergencyContactEmail?: string;
 
-  @IsOptional()
-  @IsString()
-  accompanyingParent1LastName?: string;
+  @IsString() @IsNotEmpty() @MaxLength(SHORT)
+  emergencyContactRelationship: string;
 
-  @IsOptional()
-  @IsString()
-  accompanyingParent1GivenName?: string;
+  @IsBoolean()
+  currentlyInCanada: boolean;
 
-  @IsOptional()
-  @IsString()
-  accompanyingParent1Relation?: string;
+  /** Solo es obligatoria si el estudiante ya está en Canadá. */
+  @ValidateIf((o: CreateRegistrationDto) => o.currentlyInCanada === true)
+  @IsString() @IsNotEmpty() @MaxLength(LONG)
+  canadaAddress?: string;
 
-  @IsOptional()
-  @IsDateString()
-  accompanyingParent1DateOfBirth?: string;
+  // ------------------------------------------------ 2. Agencia (opcional)
+  @IsOptional() @IsString() @MaxLength(SHORT)
+  agencyName?: string;
 
-  @IsOptional()
-  @IsNumber()
-  accompanyingParent1Age?: number;
+  @IsOptional() @IsString() @MaxLength(SHORT)
+  agencyContactPerson?: string;
 
-  @IsOptional()
-  @IsString()
-  @IsEnum(['Male', 'Female'])
-  accompanyingParent1Gender?: string;
+  @IsOptional() @IsEmail() @MaxLength(SHORT)
+  agencyEmail?: string;
 
-  @IsOptional()
-  @IsString()
-  accompanyingParent1Nationality?: string;
+  // ------------------------------------------------ 3. Padres / tutores
+  @IsString() @IsNotEmpty() @MaxLength(SHORT)
+  parentFullName: string;
 
-  @IsOptional()
-  @IsString()
-  accompanyingParent1PassportNumber?: string;
+  @IsOptional() @IsDateString()
+  parentDateOfBirth?: string;
 
-  @IsOptional()
-  @IsDateString()
-  accompanyingParent1PassportExpiry?: string;
+  @IsEmail() @MaxLength(SHORT)
+  parentEmail: string;
 
-  @IsOptional()
-  @IsString()
-  accompanyingParent1Phone?: string;
+  @IsString() @IsNotEmpty() @MaxLength(SHORT)
+  parentPhone: string;
 
-  @IsOptional()
-  @IsEmail()
-  accompanyingParent1Email?: string;
+  @IsOptional() @IsString() @MaxLength(SHORT)
+  parent2FullName?: string;
 
-  @IsOptional()
-  @IsString()
-  accompanyingParent2LastName?: string;
+  @IsOptional() @IsDateString()
+  parent2DateOfBirth?: string;
 
-  @IsOptional()
-  @IsString()
-  accompanyingParent2GivenName?: string;
+  @IsOptional() @IsEmail() @MaxLength(SHORT)
+  parent2Email?: string;
 
-  @IsOptional()
-  @IsString()
-  accompanyingParent2Relation?: string;
+  @IsOptional() @IsString() @MaxLength(SHORT)
+  parent2Phone?: string;
 
-  @IsOptional()
-  @IsDateString()
-  accompanyingParent2DateOfBirth?: string;
-
-  @IsOptional()
-  @IsNumber()
-  accompanyingParent2Age?: number;
-
-  @IsOptional()
-  @IsString()
-  @IsEnum(['Male', 'Female'])
-  accompanyingParent2Gender?: string;
-
-  @IsOptional()
-  @IsString()
-  accompanyingParent2Nationality?: string;
-
-  @IsOptional()
-  @IsString()
-  accompanyingParent2PassportNumber?: string;
-
-  @IsOptional()
-  @IsDateString()
-  accompanyingParent2PassportExpiry?: string;
-
-  @IsOptional()
-  @IsString()
-  accompanyingParent2Phone?: string;
-
-  @IsOptional()
-  @IsEmail()
-  accompanyingParent2Email?: string;
-
-  @IsString()
-  @IsEnum([
-    'Beginner',
-    'Elementary',
-    'Pre-Intermediate',
-    'Intermediate',
-    'Upper-Intermediate',
-    'Advanced',
-  ])
-  englishLevel: string;
-
-  @IsOptional()
-  @IsString()
-  ieltsOverall?: string;
-
-  @IsOptional()
-  @IsDateString()
-  ieltsDate?: string;
-
-  @IsOptional()
-  @IsString()
-  toeflScore?: string;
-
-  @IsOptional()
-  @IsDateString()
-  toeflDate?: string;
-
-  @IsOptional()
-  @IsString()
-  otherCertificate?: string;
-
-  @IsOptional()
-  @IsString()
-  studentStrengths?: string;
-
-  @IsOptional()
-  @IsString()
-  studentInterests?: string;
-
-  @IsString()
-  @IsEnum(['Never', 'Yes'])
-  previousInternationalExperience: string;
-
-  @IsOptional()
-  @IsString()
-  previousExperienceDetails?: string;
-
-  @IsString()
-  @IsEnum(['Good', 'Average', 'Other'])
-  generalHealthCondition: string;
-
-  @IsOptional()
-  @IsString()
+  // ------------------------------------------------ 4. Historial médico
+  @IsOptional() @IsString() @MaxLength(LONG)
   allergies?: string;
 
-  @IsOptional()
-  @IsString()
+  @IsOptional() @IsString() @MaxLength(LONG)
   medicalConditions?: string;
 
-  @IsOptional()
-  @IsString()
+  @IsOptional() @IsString() @MaxLength(LONG)
   medications?: string;
 
-  @IsOptional()
-  @IsString()
+  @IsOptional() @IsString() @MaxLength(LONG)
   specialDietary?: string;
 
-  @IsOptional()
-  @IsBoolean()
-  hasAllergies?: boolean;
+  // ------------------------------------------------ 5. Centro, fechas, alojamiento
+  @IsIn(CAMP_CENTRES as unknown as string[])
+  campCentre: string;
 
-  @IsOptional()
-  @IsString()
-  allergiesDetails?: string;
+  @Type(() => Number)
+  @IsInt() @Min(1) @Max(4)
+  durationWeeks: number;
 
-  @IsOptional()
-  @IsBoolean()
-  hasChronicIllness?: boolean;
+  @IsDateString()
+  preferredStartDate: string;
 
-  @IsOptional()
-  @IsString()
-  chronicIllnessDetails?: string;
+  @IsDateString()
+  departureDate: string;
 
-  @IsOptional()
-  @IsString()
-  regularMedication?: string;
-
-  @IsOptional()
-  @IsString()
-  @IsEnum(['Vegetarian', 'No pork', 'Other', 'None'])
-  specialDiet?: string;
-
-  @IsOptional()
-  @IsString()
-  specialDietDetails?: string;
-
-  @IsOptional()
-  @IsString()
-  specialNeeds?: string;
-
-  @IsString()
-  @IsEnum(['group', 'individual', 'parents-accompany'])
-  travelArrangement: string;
-
-  @IsString()
-  @IsEnum(['dormitory', 'homestay', 'other'])
+  @IsIn(ACCOMMODATION_TYPES as unknown as string[])
   accommodationType: string;
 
-  @IsOptional()
-  @IsString()
-  accommodationOther?: string;
+  @IsIn(PARENT_ACCOMMODATIONS as unknown as string[])
+  parentAccommodation: string;
 
-  @IsOptional()
-  @IsString()
-  arrivalAirline?: string;
+  // ------------------------------------------------ 6. Programa académico
+  @IsIn(ACADEMIC_PROGRAMS as unknown as string[])
+  academicProgram: string;
 
-  @IsOptional()
-  @IsString()
-  arrivalFlightNumber?: string;
+  // ------------------------------------------------ 7. Servicios opcionales
+  @IsIn(AIRPORT_TRANSFERS as unknown as string[])
+  airportTransfer: string;
 
-  @IsOptional()
-  @IsString()
-  arrivalDepartureAirport?: string;
+  @IsBoolean()
+  frenchCanadaTour: boolean;
 
-  @IsOptional()
-  @IsString()
-  arrivalAirportToronto?: string;
+  @IsBoolean()
+  notarizedCustodyLetter: boolean;
 
-  @IsOptional()
+  @IsBoolean()
+  officialCertificate: boolean;
+
+  @IsArray()
+  @ArrayUnique()
+  @IsIn(NIGHT_STAYS as unknown as string[], { each: true })
+  additionalNightStays: string[];
+
+  // ------------------------------------------------ 8. Prueba de nivel
+  @IsIn(PLACEMENT_TESTS as unknown as string[])
+  placementTest: string;
+
+  // ------------------------------------------------ 9. Términos y firma
+  @Equals(true, { message: 'termsAccepted must be true' })
+  termsAccepted: boolean;
+
   @IsDateString()
-  arrivalDateTime?: string;
+  signatureDate: string;
 
-  @IsOptional()
-  @IsString()
-  departureAirline?: string;
+  @IsString() @IsNotEmpty() @MaxLength(SHORT)
+  parentGuardianFullName: string;
 
-  @IsOptional()
-  @IsString()
-  departureFlightNumber?: string;
-
-  @IsOptional()
-  @IsDateString()
-  departureDateTime?: string;
-
-  @IsOptional()
-  @IsString()
-  flightSpecialRequests?: string;
-
-  @IsBoolean()
-  activityParticipationConsent: boolean;
-
-  @IsBoolean()
-  activityRiskAcceptance: boolean;
-
-  @IsBoolean()
-  activityLiabilityRelease: boolean;
-
-  @IsBoolean()
-  propertyRespectAgreement: boolean;
-
-  @IsBoolean()
-  propertyDamageResponsibility: boolean;
-
-  @IsBoolean()
-  medicalInfoAccuracy: boolean;
-
-  @IsBoolean()
-  allergyEnvironmentUnderstanding: boolean;
-
-  @IsBoolean()
-  emergencyInsuranceUnderstanding: boolean;
-
-  @IsBoolean()
-  emergencyTreatmentAuthorization: boolean;
-
-  @IsBoolean()
-  medicalCostResponsibility: boolean;
-
-  @IsBoolean()
-  privacyPolicyUnderstanding: boolean;
-
-  @IsString()
-  @IsEnum(['yes', 'no'])
-  mediaConsent: string;
-
-  @IsBoolean()
-  informationTruthConfirmation: boolean;
-
-  @IsBoolean()
-  applicationFormUnderstanding: boolean;
-
-  @IsBoolean()
-  campRulesAgreement: boolean;
-
-  @IsBoolean()
-  consentWaiverSignAgreement: boolean;
-
-  @IsOptional()
-  @IsString()
-  parentGuardianFullName?: string;
-
-  @IsOptional()
-  @IsString()
-  parentGuardianRelation?: string;
-
-  @IsOptional()
-  @IsString()
-  parentSignature?: string;
-
-  @IsOptional()
-  @IsDateString()
-  signatureDate?: string;
+  @IsString() @IsNotEmpty() @MaxLength(SHORT)
+  parentSignature: string;
 }
