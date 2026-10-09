@@ -1,0 +1,175 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model CampRegistration {
+  id                        String   @id @default(uuid())
+
+  campId                    String?
+  programSelection          String
+  preferredStartDate        DateTime
+  agencyName                String?
+  agencyEmail               String?
+  agencyPhone               String?
+
+  studentLastName           String
+  studentGivenName          String
+  studentNickName           String?
+  studentGender             String
+  studentDateOfBirth        DateTime
+  studentAge                Int?
+  studentNationality        String
+  studentPassportNumber     String
+  studentPassportIssueDate  DateTime?
+  studentPassportExpiryDate DateTime
+  studentCurrentSchool      String?
+  studentGrade              String?
+  studentEmail              String?
+  studentPhone              String?
+  studentHomeAddress        String?
+  studentCity               String?
+  studentProvinceState      String?
+  studentCountry            String?
+  studentPostalCode         String?
+
+  parentFullName            String
+  parentRelationship        String
+  parentPhone               String
+  parentEmail               String
+  parentOccupation          String?
+
+  emergencyContactLastName  String?
+  emergencyContactGivenName String?
+  emergencyContactPhone     String?
+  emergencyContactEmail     String?
+
+  accompanyingParent1LastName    String?
+  accompanyingParent1GivenName   String?
+  accompanyingParent1Relation    String?
+  accompanyingParent1DateOfBirth DateTime?
+  accompanyingParent1Age         Int?
+  accompanyingParent1Gender      String?
+  accompanyingParent1Nationality String?
+  accompanyingParent1PassportNumber String?
+  accompanyingParent1PassportExpiry DateTime?
+  accompanyingParent1Phone       String?
+  accompanyingParent1Email       String?
+
+  accompanyingParent2LastName    String?
+  accompanyingParent2GivenName   String?
+  accompanyingParent2Relation    String?
+  accompanyingParent2DateOfBirth DateTime?
+  accompanyingParent2Age         Int?
+  accompanyingParent2Gender      String?
+  accompanyingParent2Nationality String?
+  accompanyingParent2PassportNumber String?
+  accompanyingParent2PassportExpiry DateTime?
+  accompanyingParent2Phone       String?
+  accompanyingParent2Email       String?
+
+  englishLevel                  String
+  ieltsOverall                  String?
+  ieltsDate                     DateTime?
+  toeflScore                    String?
+  toeflDate                     DateTime?
+  otherCertificate              String?
+  studentStrengths              String?
+  studentInterests              String?
+  previousInternationalExperience String
+  previousExperienceDetails     String?
+
+  generalHealthCondition        String
+  allergies                     String?
+  medicalConditions             String?
+  medications                   String?
+  specialDietary                String?
+  hasAllergies                  Boolean?
+  allergiesDetails              String?
+  hasChronicIllness             Boolean?
+  chronicIllnessDetails         String?
+  regularMedication             String?
+  specialDiet                   String?
+  specialDietDetails            String?
+  specialNeeds                  String?
+
+  travelArrangement             String
+  accommodationType             String
+  accommodationOther            String?
+
+  arrivalAirline                String?
+  arrivalFlightNumber           String?
+  arrivalDepartureAirport       String?
+  arrivalAirportToronto         String?
+  arrivalDateTime               DateTime?
+  departureAirline              String?
+  departureFlightNumber         String?
+  departureDateTime             DateTime?
+  flightSpecialRequests         String?
+
+  activityParticipationConsent Boolean @default(false)
+  activityRiskAcceptance       Boolean @default(false)
+  activityLiabilityRelease     Boolean @default(false)
+  propertyRespectAgreement     Boolean @default(false)
+  propertyDamageResponsibility Boolean @default(false)
+  medicalInfoAccuracy          Boolean @default(false)
+  allergyEnvironmentUnderstanding Boolean @default(false)
+  emergencyInsuranceUnderstanding Boolean @default(false)
+  emergencyTreatmentAuthorization Boolean @default(false)
+  medicalCostResponsibility    Boolean @default(false)
+  privacyPolicyUnderstanding   Boolean @default(false)
+  mediaConsent                 String  @default("yes")
+  informationTruthConfirmation Boolean @default(false)
+  applicationFormUnderstanding Boolean @default(false)
+  campRulesAgreement           Boolean @default(false)
+  consentWaiverSignAgreement   Boolean @default(false)
+
+  parentGuardianFullName       String?
+  parentGuardianRelation       String?
+  parentSignature              String?
+  signatureDate                DateTime?
+
+  status                       String  @default("pending")
+  paymentStatus                String  @default("unpaid")
+  paymentAmount                Decimal?
+  notes                        String?
+  pdfUrl                       String?
+
+  registrationDate             DateTime @default(now())
+  createdAt                    DateTime @default(now())
+  updatedAt                    DateTime @updatedAt
+
+  @@map("camp_registrations")
+}
+
+model CampProgram {
+  id          String   @id @default(uuid())
+  name        String
+  description String
+  dates       Json     // Array of { startDate: string, endDate: string }
+  capacity    Int
+  enrolled    Int      @default(0)
+  ageRangeMin Int
+  ageRangeMax Int
+  price       Decimal
+  status      String   @default("open")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("camp_programs")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  role      String   @default("admin")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
