@@ -10,7 +10,7 @@
     "build:web": "npm --prefix web install --include=dev --no-audit --no-fund && npm --prefix web run build",
     "build:all": "npm run build:prod",
     "start:hostinger": "sh docker-entrypoint.sh",
-    "build:prod": "npm install --include=dev --no-audit --no-fund && npm run prisma:generate && nest build && npm run build:web",
+    "build:prod": "npm install --include=dev --no-audit --no-fund && npm run prisma:generate && nest build && npm run build:web && node scripts/prepare-dist.js",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
