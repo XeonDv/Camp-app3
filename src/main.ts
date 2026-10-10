@@ -3,12 +3,27 @@ import { ValidationPipe, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { existsSync } from 'fs';
+import { execSync } from 'child_process';
 import { join } from 'path';
 import { Request, Response, NextFunction } from 'express';
 import { AppModule } from './app.module';
 
+/** Preparación opcional al arrancar (hosting sin terminal): crear tablas y administrador. */
+function runStartupTasks(logger: Logger) {
+  const root = join(__dirname, '..');
+  if (process.env.AUTO_DB_PUSH === 'true') {
+    logger.log('Actualizando tablas de la base de datos (prisma db push)...');
+    // Solo AGREGA columnas/tablas: si un cambio pudiera borrar datos, prisma se detiene.
+    execSync('npx prisma db push --skip-generate', { cwd: root, stdio: 'inherit' });
+  }
+  if (process.env.ADMIN_EMAIL && process.env.ADMIN_PASSWORD) {
+    execSync('node scripts/create-admin.js', { cwd: root, stdio: 'inherit' });
+  }
+}
+
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
+  runStartupTasks(logger);
   // rawBody: Stripe firma el cuerpo original del aviso de pago; hay que conservarlo para validarlo.
   const app = await NestFactory.create<NestExpressApplication>(AppModule, { rawBody: true });
   const configService = app.get(ConfigService);

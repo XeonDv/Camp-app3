@@ -7,10 +7,10 @@
   "license": "MIT",
   "scripts": {
     "build": "nest build",
-    "build:web": "npm --prefix web install && npm --prefix web run build",
-    "build:all": "npm run build:prod && npm run build:web",
+    "build:web": "npm --prefix web install --include=dev --no-audit --no-fund && npm --prefix web run build",
+    "build:all": "npm run build:prod",
     "start:hostinger": "sh docker-entrypoint.sh",
-    "build:prod": "npm run prisma:generate && nest build",
+    "build:prod": "npm run prisma:generate && nest build && npm run build:web",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
