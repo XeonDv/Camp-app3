@@ -78,7 +78,6 @@ function runStartupTasks(logger: Logger) {
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
   buildDatabaseUrlFromParts();
-  runStartupTasks(logger);
   // rawBody: Stripe firma el cuerpo original del aviso de pago; hay que conservarlo para validarlo.
   const app = await NestFactory.create<NestExpressApplication>(AppModule, { rawBody: true });
   const configService = app.get(ConfigService);
@@ -125,6 +124,9 @@ async function bootstrap() {
   const port = configService.get('PORT') || 3000;
   
   await app.listen(port);
+
+  // Después de abrir el puerto: el hosting exige que la app escuche en pocos segundos.
+  runStartupTasks(logger);
   
   logger.log(`🚀 Camp API started successfully`);
   logger.log(`📍 Server running on port ${port}`);

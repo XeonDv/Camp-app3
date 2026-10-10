@@ -10,106 +10,106 @@ datasource db {
 model CampRegistration {
   id                        String   @id @default(uuid())
 
-  campId                    String?
-  programSelection          String?
+  campId                    String? @db.Text
+  programSelection          String? @db.Text
   preferredStartDate        DateTime
-  agencyName                String?
-  agencyEmail               String?
-  agencyPhone               String?
+  agencyName                String? @db.Text
+  agencyEmail               String? @db.Text
+  agencyPhone               String? @db.Text
 
-  studentLastName           String
-  studentGivenName          String
-  studentNickName           String?
-  studentGender             String
+  studentLastName           String @db.Text
+  studentGivenName          String @db.Text
+  studentNickName           String? @db.Text
+  studentGender             String @db.Text
   studentDateOfBirth        DateTime
   studentAge                Int?
-  studentNationality        String
-  studentPassportNumber     String
+  studentNationality        String @db.Text
+  studentPassportNumber     String @db.Text
   studentPassportIssueDate  DateTime?
   studentPassportExpiryDate DateTime?
-  studentCurrentSchool      String?
-  studentGrade              String?
-  studentEmail              String?
-  studentPhone              String?
-  studentHomeAddress        String?
-  studentCity               String?
-  studentProvinceState      String?
-  studentCountry            String?
-  studentPostalCode         String?
+  studentCurrentSchool      String? @db.Text
+  studentGrade              String? @db.Text
+  studentEmail              String? @db.Text
+  studentPhone              String? @db.Text
+  studentHomeAddress        String? @db.Text
+  studentCity               String? @db.Text
+  studentProvinceState      String? @db.Text
+  studentCountry            String? @db.Text
+  studentPostalCode         String? @db.Text
 
-  parentFullName            String
-  parentRelationship        String?
-  parentPhone               String
-  parentEmail               String
-  parentOccupation          String?
+  parentFullName            String @db.Text
+  parentRelationship        String? @db.Text
+  parentPhone               String @db.Text
+  parentEmail               String @db.Text
+  parentOccupation          String? @db.Text
 
-  emergencyContactLastName  String?
-  emergencyContactGivenName String?
-  emergencyContactPhone     String?
-  emergencyContactEmail     String?
+  emergencyContactLastName  String? @db.Text
+  emergencyContactGivenName String? @db.Text
+  emergencyContactPhone     String? @db.Text
+  emergencyContactEmail     String? @db.Text
 
-  accompanyingParent1LastName    String?
-  accompanyingParent1GivenName   String?
-  accompanyingParent1Relation    String?
+  accompanyingParent1LastName    String? @db.Text
+  accompanyingParent1GivenName   String? @db.Text
+  accompanyingParent1Relation    String? @db.Text
   accompanyingParent1DateOfBirth DateTime?
   accompanyingParent1Age         Int?
-  accompanyingParent1Gender      String?
-  accompanyingParent1Nationality String?
-  accompanyingParent1PassportNumber String?
+  accompanyingParent1Gender      String? @db.Text
+  accompanyingParent1Nationality String? @db.Text
+  accompanyingParent1PassportNumber String? @db.Text
   accompanyingParent1PassportExpiry DateTime?
-  accompanyingParent1Phone       String?
-  accompanyingParent1Email       String?
+  accompanyingParent1Phone       String? @db.Text
+  accompanyingParent1Email       String? @db.Text
 
-  accompanyingParent2LastName    String?
-  accompanyingParent2GivenName   String?
-  accompanyingParent2Relation    String?
+  accompanyingParent2LastName    String? @db.Text
+  accompanyingParent2GivenName   String? @db.Text
+  accompanyingParent2Relation    String? @db.Text
   accompanyingParent2DateOfBirth DateTime?
   accompanyingParent2Age         Int?
-  accompanyingParent2Gender      String?
-  accompanyingParent2Nationality String?
-  accompanyingParent2PassportNumber String?
+  accompanyingParent2Gender      String? @db.Text
+  accompanyingParent2Nationality String? @db.Text
+  accompanyingParent2PassportNumber String? @db.Text
   accompanyingParent2PassportExpiry DateTime?
-  accompanyingParent2Phone       String?
-  accompanyingParent2Email       String?
+  accompanyingParent2Phone       String? @db.Text
+  accompanyingParent2Email       String? @db.Text
 
-  englishLevel                  String?
-  ieltsOverall                  String?
+  englishLevel                  String? @db.Text
+  ieltsOverall                  String? @db.Text
   ieltsDate                     DateTime?
-  toeflScore                    String?
+  toeflScore                    String? @db.Text
   toeflDate                     DateTime?
-  otherCertificate              String?
-  studentStrengths              String?
-  studentInterests              String?
-  previousInternationalExperience String?
-  previousExperienceDetails     String?
+  otherCertificate              String? @db.Text
+  studentStrengths              String? @db.Text
+  studentInterests              String? @db.Text
+  previousInternationalExperience String? @db.Text
+  previousExperienceDetails     String? @db.Text
 
-  generalHealthCondition        String?
-  allergies                     String?
-  medicalConditions             String?
-  medications                   String?
-  specialDietary                String?
+  generalHealthCondition        String? @db.Text
+  allergies                     String? @db.Text
+  medicalConditions             String? @db.Text
+  medications                   String? @db.Text
+  specialDietary                String? @db.Text
   hasAllergies                  Boolean?
-  allergiesDetails              String?
+  allergiesDetails              String? @db.Text
   hasChronicIllness             Boolean?
-  chronicIllnessDetails         String?
-  regularMedication             String?
-  specialDiet                   String?
-  specialDietDetails            String?
-  specialNeeds                  String?
+  chronicIllnessDetails         String? @db.Text
+  regularMedication             String? @db.Text
+  specialDiet                   String? @db.Text
+  specialDietDetails            String? @db.Text
+  specialNeeds                  String? @db.Text
 
-  travelArrangement             String?
-  accommodationType             String
-  accommodationOther            String?
+  travelArrangement             String? @db.Text
+  accommodationType             String @db.Text
+  accommodationOther            String? @db.Text
 
-  arrivalAirline                String?
-  arrivalFlightNumber           String?
-  arrivalDepartureAirport       String?
-  arrivalAirportToronto         String?
+  arrivalAirline                String? @db.Text
+  arrivalFlightNumber           String? @db.Text
+  arrivalDepartureAirport       String? @db.Text
+  arrivalAirportToronto         String? @db.Text
   arrivalDateTime               DateTime?
-  departureAirline              String?
-  departureFlightNumber         String?
+  departureAirline              String? @db.Text
+  departureFlightNumber         String? @db.Text
   departureDateTime             DateTime?
-  flightSpecialRequests         String?
+  flightSpecialRequests         String? @db.Text
 
   activityParticipationConsent Boolean @default(false)
   activityRiskAcceptance       Boolean @default(false)
@@ -128,49 +128,49 @@ model CampRegistration {
   campRulesAgreement           Boolean @default(false)
   consentWaiverSignAgreement   Boolean @default(false)
 
-  parentGuardianFullName       String?
-  parentGuardianRelation       String?
-  parentSignature              String?
+  parentGuardianFullName       String? @db.Text
+  parentGuardianRelation       String? @db.Text
+  parentSignature              String? @db.Text
   signatureDate                DateTime?
 
   // ---- Formulario 2027 (columnas nuevas, todas opcionales para no afectar registros anteriores) ----
   formVersion                  String   @default("2026")
-  studentMotherTongue          String?
-  emergencyContactName         String?
-  emergencyContactRelationship String?
+  studentMotherTongue          String? @db.Text
+  emergencyContactName         String? @db.Text
+  emergencyContactRelationship String? @db.Text
   currentlyInCanada            Boolean?
-  canadaAddress                String?
-  agencyContactPerson          String?
+  canadaAddress                String? @db.Text
+  agencyContactPerson          String? @db.Text
 
   parentDateOfBirth            DateTime?
-  parent2FullName              String?
+  parent2FullName              String? @db.Text
   parent2DateOfBirth           DateTime?
-  parent2Email                 String?
-  parent2Phone                 String?
+  parent2Email                 String? @db.Text
+  parent2Phone                 String? @db.Text
 
-  campCentre                   String?
+  campCentre                   String? @db.Text
   durationWeeks                Int?
   departureDate                DateTime?
-  parentAccommodation          String?
-  academicProgram              String?
-  airportTransfer              String?
+  parentAccommodation          String? @db.Text
+  academicProgram              String? @db.Text
+  airportTransfer              String? @db.Text
   frenchCanadaTour             Boolean?
   notarizedCustodyLetter       Boolean?
   officialCertificate          Boolean?
   additionalNightStays         Json?
-  placementTest                String?
+  placementTest                String? @db.Text
   termsAccepted                Boolean?
 
   // ---- Pago con Stripe ----
-  stripeSessionId              String?
-  stripePaymentIntentId        String?
+  stripeSessionId              String? @db.Text
+  stripePaymentIntentId        String? @db.Text
   paidAt                       DateTime?
 
   status                       String  @default("pending")
   paymentStatus                String  @default("unpaid")
   paymentAmount                Decimal?
-  notes                        String?
-  pdfUrl                       String?
+  notes                        String? @db.Text
+  pdfUrl                       String? @db.Text
 
   registrationDate             DateTime @default(now())
   createdAt                    DateTime @default(now())
