@@ -11,3 +11,6 @@ coverage
 Dockerfile
 docker-compose*.yml
 .dockerignore
+.env.test
+web/node_modules
+web/dist
