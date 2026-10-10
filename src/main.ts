@@ -1,12 +1,16 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { NestExpressApplication } from '@nestjs/platform-express';
+import { existsSync } from 'fs';
+import { join } from 'path';
+import { Request, Response, NextFunction } from 'express';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
   // rawBody: Stripe firma el cuerpo original del aviso de pago; hay que conservarlo para validarlo.
-  const app = await NestFactory.create(AppModule, { rawBody: true });
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, { rawBody: true });
   const configService = app.get(ConfigService);
 
   const frontendUrl = configService.get('FRONTEND_URL');
@@ -30,6 +34,20 @@ async function bootstrap() {
   );
 
   app.setGlobalPrefix('api');
+
+  // Si existe el formulario ya construido (web/dist), esta misma app lo entrega.
+  // Así un solo sitio Node.js (p. ej. Hostinger) sirve formulario + API. Con Docker no se usa (nginx lo hace).
+  const webDist = join(__dirname, '..', 'web', 'dist');
+  if (existsSync(join(webDist, 'index.html'))) {
+    app.useStaticAssets(webDist, { index: false });
+    app.use((req: Request, res: Response, next: NextFunction) => {
+      if (req.method === 'GET' && !req.path.startsWith('/api')) {
+        return res.sendFile(join(webDist, 'index.html'));
+      }
+      next();
+    });
+    logger.log('🖥️  Serving web frontend from web/dist');
+  }
 
   const port = configService.get('PORT') || 3000;
   
