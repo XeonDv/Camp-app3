@@ -26,36 +26,52 @@ function firstExisting(...paths: string[]): string | undefined {
   return paths.find((p) => existsSync(p));
 }
 
+/** Ejecuta un comando y, si falla, deja en el log el motivo real (sin claves). */
+function runStep(logger: Logger, label: string, command: string, cwd: string) {
+  try {
+    const out = execSync(command, { cwd, encoding: 'utf8', stdio: 'pipe', timeout: 120000 });
+    logger.log(`${label}: OK ${out.trim().split('\n').slice(-3).join(' | ')}`);
+  } catch (error) {
+    const e = error as { stdout?: string; stderr?: string; message: string };
+    let detail = `${e.stderr || ''}\n${e.stdout || ''}`.trim() || e.message;
+    for (const secret of [process.env.DATABASE_URL, process.env.DB_PASSWORD, process.env.ADMIN_PASSWORD]) {
+      if (secret) detail = detail.split(secret).join('***');
+    }
+    logger.error(`${label} falló:\n${detail.slice(-1500)}`);
+  }
+}
+
 /** Preparación opcional al arrancar (hosting sin terminal): crear tablas y administrador. Nunca tumba la app. */
 function runStartupTasks(logger: Logger) {
   const root = join(__dirname, '..');
 
   if (process.env.AUTO_DB_PUSH === 'true') {
+    const schema = firstExisting(
+      join(__dirname, 'prisma', 'schema.prisma'),
+      join(root, 'prisma', 'schema.prisma'),
+    );
+    let prismaCli: string | undefined;
     try {
-      const schema = firstExisting(
-        join(__dirname, 'prisma', 'schema.prisma'),
-        join(root, 'prisma', 'schema.prisma'),
-      );
-      if (!schema) throw new Error('No se encontró prisma/schema.prisma');
+      prismaCli = require.resolve('prisma/build/index.js');
+    } catch {
+      prismaCli = undefined;
+    }
+    if (!schema || !prismaCli) {
+      logger.error(`No se pueden crear las tablas: schema=${schema ?? 'no encontrado'} prismaCli=${prismaCli ?? 'no encontrado'}`);
+    } else {
       logger.log('Actualizando tablas de la base de datos (prisma db push)...');
       // Solo AGREGA columnas/tablas: si un cambio pudiera borrar datos, prisma se detiene.
-      execSync(`npx prisma db push --skip-generate --schema "${schema}"`, { cwd: root, stdio: 'inherit' });
-    } catch (error) {
-      logger.error(`No se pudieron actualizar las tablas: ${(error as Error).message}`);
+      runStep(logger, 'Tablas', `"${process.execPath}" "${prismaCli}" db push --skip-generate --schema "${schema}"`, root);
     }
   }
 
   if (process.env.ADMIN_EMAIL && process.env.ADMIN_PASSWORD) {
-    try {
-      const script = firstExisting(
-        join(__dirname, 'scripts', 'create-admin.js'),
-        join(root, 'scripts', 'create-admin.js'),
-      );
-      if (!script) throw new Error('No se encontró scripts/create-admin.js');
-      execSync(`node "${script}"`, { cwd: root, stdio: 'inherit' });
-    } catch (error) {
-      logger.error(`No se pudo crear el administrador: ${(error as Error).message}`);
-    }
+    const script = firstExisting(
+      join(__dirname, 'scripts', 'create-admin.js'),
+      join(root, 'scripts', 'create-admin.js'),
+    );
+    if (!script) logger.error('No se encontró scripts/create-admin.js');
+    else runStep(logger, 'Administrador', `"${process.execPath}" "${script}"`, root);
   }
 }
 
