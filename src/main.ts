@@ -8,6 +8,19 @@ import { join } from 'path';
 import { Request, Response, NextFunction } from 'express';
 import { AppModule } from './app.module';
 
+/**
+ * Alternativa a DATABASE_URL: si se definen DB_HOST, DB_USER, DB_PASSWORD y DB_NAME por separado,
+ * se arma la dirección aquí y la contraseña puede llevar cualquier carácter (se codifica sola).
+ */
+function buildDatabaseUrlFromParts() {
+  const { DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME } = process.env;
+  if (DB_HOST && DB_USER && DB_PASSWORD !== undefined && DB_NAME) {
+    process.env.DATABASE_URL = `mysql://${encodeURIComponent(DB_USER.trim())}:${encodeURIComponent(
+      DB_PASSWORD,
+    )}@${DB_HOST.trim()}:${(DB_PORT || '3306').trim()}/${DB_NAME.trim()}`;
+  }
+}
+
 /** Primer archivo que exista de una lista de rutas posibles (con hosting o con Docker cambia la ubicación). */
 function firstExisting(...paths: string[]): string | undefined {
   return paths.find((p) => existsSync(p));
@@ -48,6 +61,7 @@ function runStartupTasks(logger: Logger) {
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
+  buildDatabaseUrlFromParts();
   runStartupTasks(logger);
   // rawBody: Stripe firma el cuerpo original del aviso de pago; hay que conservarlo para validarlo.
   const app = await NestFactory.create<NestExpressApplication>(AppModule, { rawBody: true });
